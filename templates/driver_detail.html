@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% set title = "Driver Details" %}
+{% block content %}
+<div class="profile-strip">
+  <div class="avatar large">{{ driver.name[0] }}</div>
+  <div><h2>{{ driver.name }}</h2><span>{{ driver.phone }}</span></div>
+  <span class="status active-status">{{ driver.status }}</span>
+  <form method="post" action="{{ url_for('delete_driver', driver_id=driver.id) }}" class="delete-form profile-delete" onsubmit="return confirm('Delete this driver? Only drivers with no work records can be deleted.');"><button class="delete-btn" type="submit">Delete Driver</button></form>
+</div>
+<div class="tabs">
+  <a class="{{ 'selected' if period=='day' else '' }}" href="?period=day">Day</a>
+  <a class="{{ 'selected' if period=='week' else '' }}" href="?period=week">Week</a>
+  <a class="{{ 'selected' if period=='month' else '' }}" href="?period=month">Month</a>
+</div>
+<div class="table-wrap">
+<table>
+<thead><tr><th>Date</th><th>Vehicle</th><th>Start</th><th>End</th><th>Hours</th><th>Amount</th><th>Bill</th><th>Delete</th></tr></thead>
+<tbody>
+{% for e in entries %}
+<tr><td>{{ e.work_date }}</td><td>{{ e.vehicle_number }}</td><td>{{ e.start_time }}</td><td>{{ e.end_time }}</td><td>{{ "%.2f"|format(e.hours) }} h</td><td>{{ e.amount|inr }}</td><td><a class="print-link" href="{{ url_for('bill', entry_id=e.id) }}" target="_blank">🖨 Print</a></td><td><form method="post" action="{{ url_for('delete_work', entry_id=e.id) }}" class="inline-delete" onsubmit="return confirm('Delete this work record?');"><button class="delete-btn small" type="submit">Delete</button></form></td></tr>
+{% else %}<tr><td colspan="8">No work entries yet.</td></tr>{% endfor %}
+</tbody>
+<tfoot><tr><th colspan="4">Total</th><th>{{ "%.2f"|format(total_hours) }} h</th><th>{{ total_amount|inr }}</th></tr></tfoot>
+</table>
+</div>
+<a class="btn" href="{{ url_for('add_work') }}">+ Add Work Entry</a>
+{% endblock %}

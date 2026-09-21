@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Admin Login - சேவற்கொடி Earth Movers</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="login-page">
+  <div class="login-card">
+    <img class="login-logo" src="{{ url_for('static', filename='images/business-logo.png') }}" alt="சேவற்கொடி Earth Movers">
+    <h1>Admin Login</h1>
+    <p>Sign in to manage drivers, vehicles, work entries and bills.</p>
+    {% if error %}<div class="login-error">{{ error }}</div>{% endif %}
+    <form method="post">
+      <label>Username<input name="username" autocomplete="username" required></label>
+      <label>Password<input type="password" name="password" autocomplete="current-password" required></label>
+      <button class="btn wide" type="submit">Login</button>
+    </form>
+    <small>சேவற்கொடி Earth Movers · 9092706555</small>
+  </div>
+</body>
+</html>

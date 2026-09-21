@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="form-card">
+  <form method="post">
+    {% if kind == "driver" %}
+    <label>Driver Name<input name="name" required placeholder="Kumar"></label>
+    <label>Phone Number<input name="phone" required placeholder="+91 98765 43210"></label>
+    <label>Status<select name="status"><option>Active</option><option>Inactive</option></select></label>
+    {% else %}
+    <label>Vehicle Number<input name="number" required placeholder="TN 33 AB 1234"></label>
+    <label>Vehicle Type<input name="type" required placeholder="JCB 3DX"></label>
+    <label>Status<select name="status"><option>Idle</option><option>Working</option></select></label>
+    {% endif %}
+    <button class="btn wide" type="submit">Save</button>
+  </form>
+</div>
+{% endblock %}

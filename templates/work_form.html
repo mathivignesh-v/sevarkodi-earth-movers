@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% set title = "Add Work Entry" %}
+{% block content %}
+<div class="form-card">
+  <form method="post">
+    <label>Driver<select name="driver_id" required>{% for d in drivers %}<option value="{{ d.id }}">{{ d.name }} — {{ d.phone }}</option>{% endfor %}</select></label>
+    <label>Vehicle Number<select name="vehicle_id" required>{% for v in vehicles %}<option value="{{ v.id }}">{{ v.number }} — {{ v.type }}</option>{% endfor %}</select></label>
+    <label>Work Date<input type="date" name="work_date" value="2026-08-21" required></label>
+    <div class="two"><label>Start Time<input type="time" name="start_time" value="08:10" required></label><label>End Time<input type="time" name="end_time" value="11:45" required></label></div>
+    <label>Amount (₹)<input type="number" name="amount" min="0" step="1" value="2675" required></label>
+    <button class="btn wide" type="submit">Save Work Entry</button>
+  </form>
+</div>
+{% endblock %}

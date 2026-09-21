@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title or "Earth Movers Management" }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <aside class="sidebar">
+    <div class="business-logo-wrap">
+      <img class="business-logo" src="{{ url_for('static', filename='images/business-logo.png') }}" alt="சேவற்கொடி Earth Movers">
+    </div>
+    <div class="business-details">
+      <strong>சேவற்கொடி Earth Movers</strong>
+      <span>Backhoe Service</span>
+      <small>9092706555</small>
+    </div>
+    <p class="tagline">Track drivers, vehicles and operations easily.</p>
+    <nav>
+      <a class="{{ 'active' if request.endpoint=='dashboard' else '' }}" href="{{ url_for('dashboard') }}">⌂ <span>Dashboard</span></a>
+      <a class="{{ 'active' if request.endpoint in ['drivers','driver_detail','add_driver'] else '' }}" href="{{ url_for('drivers') }}">♙ <span>Drivers</span></a>
+      <a class="{{ 'active' if request.endpoint in ['vehicles','add_vehicle'] else '' }}" href="{{ url_for('vehicles') }}">▣ <span>Vehicles</span></a>
+      <a class="{{ 'active' if request.endpoint=='add_work' else '' }}" href="{{ url_for('add_work') }}">◷ <span>Working Hours</span></a>
+      <a class="{{ 'active' if request.endpoint=='reports' else '' }}" href="{{ url_for('reports') }}">▤ <span>Earnings & Reports</span></a>
+    </nav>
+    <div class="sidebar-bottom">ADMIN PANEL<br><small>Earth Movers Operations</small></div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="menu" onclick="document.body.classList.toggle('nav-open')">☰</button>
+      <div>
+        <div class="eyebrow">சேவற்கொடி EARTH MOVERS</div>
+        <h1>{{ title or "Dashboard" }}</h1>
+      </div>
+      <div class="top-actions"><span class="online-dot"></span> Admin <a class="logout-link" href="{{ url_for('logout') }}">Logout</a></div>
+    </header>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div class="flash">{{ messages[0] }}</div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% set title = "Vehicles" %}
+{% block content %}
+<div class="toolbar">
+  <div class="search">⌕ <input id="search" oninput="filterVehicles()" placeholder="Search vehicle"></div>
+  <a class="btn" href="{{ url_for('add_vehicle') }}">+ Add Vehicle</a>
+</div>
+<div class="cards" id="vehicleCards">
+{% for v in vehicles %}
+  <div class="vehicle-card" data-name="{{ (v.number+' '+v.type)|lower }}">
+    <div class="machine">🚜</div>
+    <div class="person-main"><b>{{ v.number }}</b><span>{{ v.type }}</span></div>
+    <span class="status {{ 'working-status' if v.status=='Working' else 'idle-status' }}">{{ v.status }}</span><form method="post" action="{{ url_for('delete_vehicle', vehicle_id=v.id) }}" class="delete-form" onsubmit="return confirm('Delete this vehicle? This is allowed only if the vehicle has no work records.');"><button class="delete-btn" type="submit">Delete</button></form>
+  </div>
+{% endfor %}
+</div>
+{% endblock %}
