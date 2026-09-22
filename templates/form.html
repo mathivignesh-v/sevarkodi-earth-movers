@@ -1,1 +1,11 @@
-{% extends 'base.html' %}{% block content %}<h2>{{title}}</h2><div class="card p-4 mt-3"><form method="post">{% if kind=='driver' %}<label>Name</label><input class="form-control mb-3" name="name" required><label>Phone</label><input class="form-control mb-3" name="phone" required><label>Status</label><select class="form-select mb-3" name="status"><option>Active</option><option>Inactive</option></select>{% else %}<label>Vehicle Number</label><input class="form-control mb-3" name="number" required><label>Vehicle Type</label><input class="form-control mb-3" name="type" placeholder="JCB 3DX / Tipper / Tractor" required><label>Initial Rate / Hour</label><input class="form-control mb-3" type="number" name="rate_per_hour" min="0" value="0"><label>Status</label><select class="form-select mb-3" name="status"><option>Idle</option><option>Working</option></select>{% endif %}<button class="btn btn-dark">Save</button></form></div>{% endblock %}
+{% extends 'base.html' %}{% block content %}
+<div class="row justify-content-center"><div class="col-xl-8">
+<div class="mb-4"><h2 class="page-title mb-1">{{ title }}</h2><div class="muted">Add the details used across work entries and reports.</div></div>
+<div class="card p-4 p-lg-5"><form method="post">
+{% if kind=='driver' %}
+<div class="row g-3"><div class="col-md-6"><label>Operator Name</label><input class="form-control" name="name" required></div><div class="col-md-6"><label>Phone</label><input class="form-control" name="phone" required></div><div class="col-md-6"><label>Status</label><select class="form-select" name="status"><option>Active</option><option>Inactive</option></select></div></div>
+{% else %}
+<div class="row g-3"><div class="col-md-6"><label>Vehicle Number</label><input class="form-control" name="number" placeholder="TN 33 AB 1234" required></div><div class="col-md-6"><label>Vehicle Type</label><input class="form-control" name="type" placeholder="JCB 3DX / Tipper / Tractor" required></div><div class="col-md-6"><label>Initial Rate / Hour</label><input class="form-control" type="number" name="rate_per_hour" min="0" step="0.01" value="0"></div><div class="col-md-6"><label>Status</label><select class="form-select" name="status"><option>Idle</option><option>Working</option></select></div></div>
+{% endif %}
+<div class="mt-4 d-flex gap-2"><button class="btn btn-brand"><i class="bi bi-check-lg me-1"></i>Save</button><a class="btn btn-outline-secondary" href="{{ url_for('dashboard') }}">Cancel</a></div>
+</form></div></div></div>{% endblock %}

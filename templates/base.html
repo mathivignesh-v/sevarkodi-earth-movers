@@ -1,1 +1,156 @@
-<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ title or 'Earth Movers Admin' }}</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><style>body{background:#f5f7fb}.navbar{background:#111827}.navbar a{color:#fff}.card{border:0;box-shadow:0 3px 15px #0000000b}.table th{white-space:nowrap}.stat{font-size:28px;font-weight:700}.btn{border-radius:8px}.brand{font-weight:800}.muted{color:#6b7280}</style></head><body><nav class="navbar navbar-expand-lg"><div class="container"><a class="navbar-brand brand" href="{{ url_for('dashboard') }}">Sevarkodi Earth Movers</a><div class="navbar-nav ms-auto"><a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a><a class="nav-link" href="{{ url_for('customers') }}">Customers</a><a class="nav-link" href="{{ url_for('drivers') }}">Operators</a><a class="nav-link" href="{{ url_for('vehicles') }}">Vehicles</a><a class="nav-link" href="{{ url_for('rates') }}">Rates</a><a class="nav-link" href="{{ url_for('reports') }}">Reports</a><a class="nav-link" href="{{ url_for('add_work') }}">+ Work</a><a class="nav-link" href="{{ url_for('logout') }}">Logout</a></div></div></nav><main class="container py-4">{% with messages=get_flashed_messages() %}{% if messages %}{% for m in messages %}<div class="alert alert-success">{{m}}</div>{% endfor %}{% endif %}{% endwith %}{% block content %}{% endblock %}</main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ title or 'Sevarkodi Earth Movers' }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+<style>
+:root{
+  --brand:#f5b400;
+  --brand-dark:#d88f00;
+  --navy:#101c2b;
+  --navy-2:#17283c;
+  --ink:#172033;
+  --muted:#6b7280;
+  --bg:#f4f7fb;
+  --card:#ffffff;
+  --line:#e6ebf2;
+  --success:#16a34a;
+  --danger:#dc2626;
+  --info:#0ea5e9;
+}
+*{box-sizing:border-box}
+body{
+  background:linear-gradient(135deg,#f7f9fc 0%,#eef3f9 100%);
+  color:var(--ink);
+  font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+}
+a{text-decoration:none}
+.app-nav{
+  background:linear-gradient(135deg,var(--navy),#20364e);
+  box-shadow:0 8px 28px rgba(16,28,43,.18);
+}
+.brand-logo{
+  width:54px;height:54px;object-fit:contain;border-radius:12px;
+  background:#17283c;padding:3px;box-shadow:0 3px 12px rgba(0,0,0,.2)
+}
+.brand-text{line-height:1.05}
+.brand-title{font-weight:800;color:#fff;font-size:1rem}
+.brand-sub{font-size:.67rem;color:#f7c94b;letter-spacing:.16em}
+.nav-link{
+  color:#dce6f2!important;border-radius:10px;padding:.65rem .75rem!important;
+  font-weight:600;font-size:.9rem;
+}
+.nav-link:hover,.nav-link.active{background:rgba(245,180,0,.15);color:#ffd45a!important}
+.page-wrap{max-width:1400px}
+.page-title{font-weight:800;letter-spacing:-.02em}
+.card{
+  border:1px solid var(--line)!important;border-radius:18px!important;
+  box-shadow:0 10px 30px rgba(15,23,42,.06)!important;
+}
+.stat-card{position:relative;overflow:hidden}
+.stat-card:after{
+  content:"";position:absolute;right:-30px;top:-35px;width:120px;height:120px;
+  border-radius:50%;background:rgba(245,180,0,.10)
+}
+.stat-icon{
+  width:46px;height:46px;border-radius:13px;display:grid;place-items:center;
+  background:#fff4cc;color:#b87900;font-size:1.2rem
+}
+.stat{font-size:1.65rem;font-weight:800}
+.muted{color:var(--muted)}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:1rem}
+.btn-brand{
+  background:linear-gradient(135deg,#ffc928,var(--brand-dark));border:0;color:#1f2937;
+  font-weight:800;border-radius:11px;padding:.65rem 1rem;
+  box-shadow:0 6px 16px rgba(216,143,0,.2)
+}
+.btn-brand:hover{color:#111827;filter:brightness(.97)}
+.btn-navy{background:var(--navy);border:0;color:#fff;border-radius:11px;font-weight:700}
+.btn-navy:hover{background:#1d3046;color:#fff}
+.table thead th{
+  background:#f7f9fc;color:#536174;font-size:.76rem;text-transform:uppercase;
+  letter-spacing:.06em;border-bottom:1px solid var(--line)
+}
+.table td{vertical-align:middle;border-color:#edf1f6}
+.table tbody tr:hover{background:#fbfcfe}
+.badge-soft{border-radius:999px;padding:.38rem .65rem;font-weight:700}
+.badge-active{background:#dcfce7;color:#15803d}
+.badge-idle{background:#e0f2fe;color:#0369a1}
+.badge-working{background:#fff4cc;color:#9a6700}
+.badge-inactive{background:#fee2e2;color:#b91c1c}
+.form-control,.form-select{
+  border-radius:11px;border:1px solid #dce3ec;padding:.7rem .8rem
+}
+.form-control:focus,.form-select:focus{
+  border-color:#f0b51b;box-shadow:0 0 0 .2rem rgba(245,180,0,.16)
+}
+.form-label,label{font-weight:700;font-size:.9rem;margin-bottom:.4rem}
+.alert{border:0;border-radius:13px}
+.hero{
+  background:linear-gradient(135deg,var(--navy),#29435d);
+  color:#fff;border-radius:22px;padding:1.5rem;position:relative;overflow:hidden;
+  box-shadow:0 12px 35px rgba(16,28,43,.18)
+}
+.hero:after{
+  content:"";position:absolute;width:260px;height:260px;border-radius:50%;
+  right:-80px;top:-110px;background:rgba(245,180,0,.14)
+}
+.hero-logo{width:78px;height:78px;object-fit:contain;border-radius:16px;background:#17283c;padding:4px}
+.quick-card{transition:.2s ease}
+.quick-card:hover{transform:translateY(-3px);box-shadow:0 14px 35px rgba(15,23,42,.10)!important}
+.quick-icon{font-size:1.5rem;color:#b87900}
+.login-bg{
+  min-height:100vh;background:
+  radial-gradient(circle at 15% 20%,rgba(245,180,0,.20),transparent 30%),
+  linear-gradient(135deg,#0d1825,#1c3148);
+}
+.login-card{max-width:460px;border-radius:24px!important}
+.login-logo{width:170px;height:130px;object-fit:contain}
+.bill{
+  max-width:900px;margin:30px auto;background:#fff;border-radius:22px;
+  box-shadow:0 15px 45px rgba(15,23,42,.12);overflow:hidden
+}
+.bill-head{background:linear-gradient(135deg,var(--navy),#29435d);color:#fff;padding:28px}
+.bill-logo{width:110px;height:90px;object-fit:contain;background:#17283c;border-radius:15px;padding:4px}
+.bill-total{font-size:1.8rem;font-weight:900;color:#a96d00}
+@media(max-width:991px){
+  .navbar-nav{padding-top:.7rem}.nav-link{margin:.15rem 0}
+}
+@media print{
+  body{background:#fff!important}.no-print{display:none!important}
+  .bill{box-shadow:none;margin:0;max-width:none;border-radius:0}
+}
+</style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg app-nav navbar-dark sticky-top">
+ <div class="container-fluid px-3 px-lg-4">
+  <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard') }}">
+   <img src="{{ url_for('static', filename='logo.png') }}" class="brand-logo" alt="Sevarkodi Earth Movers">
+   <span class="brand-text"><span class="brand-title d-block">Sevarkodi Earth Movers</span><span class="brand-sub">BACKHOE SERVICE</span></span>
+  </a>
+  <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav"><span class="navbar-toggler-icon"></span></button>
+  <div class="collapse navbar-collapse" id="mainNav">
+   <div class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
+    <a class="nav-link" href="{{ url_for('dashboard') }}"><i class="bi bi-grid-1x2-fill me-1"></i>Dashboard</a>
+    <a class="nav-link" href="{{ url_for('customers') }}"><i class="bi bi-people-fill me-1"></i>Customers</a>
+    <a class="nav-link" href="{{ url_for('drivers') }}"><i class="bi bi-person-badge-fill me-1"></i>Operators</a>
+    <a class="nav-link" href="{{ url_for('vehicles') }}"><i class="bi bi-truck-front-fill me-1"></i>Machines</a>
+    <a class="nav-link" href="{{ url_for('rates') }}"><i class="bi bi-currency-rupee me-1"></i>Rates</a>
+    <a class="nav-link" href="{{ url_for('reports') }}"><i class="bi bi-bar-chart-fill me-1"></i>Reports</a>
+    <a class="btn btn-brand ms-lg-2 my-2 my-lg-0" href="{{ url_for('add_work') }}"><i class="bi bi-plus-lg me-1"></i>Add Work</a>
+    <a class="nav-link" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-1"></i>Logout</a>
+   </div>
+  </div>
+ </div>
+</nav>
+<main class="container-fluid page-wrap py-4 px-3 px-lg-4">
+{% with messages=get_flashed_messages() %}{% if messages %}{% for m in messages %}
+<div class="alert alert-success d-flex align-items-center gap-2"><i class="bi bi-check-circle-fill"></i><span>{{m}}</span></div>
+{% endfor %}{% endif %}{% endwith %}
+{% block content %}{% endblock %}
+</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body></html>

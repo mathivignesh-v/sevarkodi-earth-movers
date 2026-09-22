@@ -1,1 +1,10 @@
-{% extends 'base.html' %}{% block content %}<h2>{{title}}</h2><div class="card p-4 mt-3"><form method="post"><label>Name</label><input class="form-control mb-3" name="name" value="{{customer.name if customer else ''}}" required><label>Phone</label><input class="form-control mb-3" name="phone" value="{{customer.phone if customer else ''}}"><label>Address</label><input class="form-control mb-3" name="address" value="{{customer.address if customer else ''}}"><label>Status</label><select class="form-select mb-3" name="status"><option {% if not customer or customer.status=='Active' %}selected{% endif %}>Active</option><option {% if customer and customer.status=='Inactive' %}selected{% endif %}>Inactive</option></select><button class="btn btn-dark">Save</button></form></div>{% endblock %}
+{% extends 'base.html' %}{% block content %}
+<div class="row justify-content-center"><div class="col-xl-8">
+<div class="mb-4"><h2 class="page-title mb-1">{{ title }}</h2><div class="muted">Save customer details for faster work entry and billing.</div></div>
+<div class="card p-4 p-lg-5"><form method="post"><div class="row g-3">
+<div class="col-md-6"><label>Name</label><input class="form-control" name="name" value="{{ customer.name if customer else '' }}" required></div>
+<div class="col-md-6"><label>Phone</label><input class="form-control" name="phone" value="{{ customer.phone if customer else '' }}"></div>
+<div class="col-12"><label>Address</label><input class="form-control" name="address" value="{{ customer.address if customer else '' }}"></div>
+<div class="col-md-6"><label>Status</label><select class="form-select" name="status"><option {% if not customer or customer.status=='Active' %}selected{% endif %}>Active</option><option {% if customer and customer.status=='Inactive' %}selected{% endif %}>Inactive</option></select></div>
+</div><div class="mt-4 d-flex gap-2"><button class="btn btn-brand"><i class="bi bi-check-lg me-1"></i>Save Customer</button><a class="btn btn-outline-secondary" href="{{ url_for('customers') }}">Cancel</a></div></form></div></div></div>
+{% endblock %}

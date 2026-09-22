@@ -1,1 +1,50 @@
-{% extends 'base.html' %}{% block content %}<div class="d-flex justify-content-between align-items-center mb-4"><div><h2>Dashboard</h2><div class="muted">{{today}}</div></div><a class="btn btn-warning" href="{{url_for('add_work')}}">Add Work Entry</a></div><div class="row g-3 mb-4"><div class="col-md-3"><div class="card p-3"><div class="muted">Today's Hours</div><div class="stat">{{totals.hours|hours_fmt}}</div></div></div><div class="col-md-3"><div class="card p-3"><div class="muted">Today's Earnings</div><div class="stat">{{totals.amount|inr}}</div></div></div><div class="col-md-3"><div class="card p-3"><div class="muted">Vehicles</div><div class="stat">{{vehicle_count}}</div></div></div><div class="col-md-3"><div class="card p-3"><div class="muted">Operators</div><div class="stat">{{active_drivers}}</div></div></div></div><div class="card p-3"><div class="d-flex justify-content-between"><h5>Recent Work</h5><a href="{{url_for('reports')}}">View all</a></div><div class="table-responsive"><table class="table align-middle"><tr><th>Date</th><th>Customer</th><th>Operator</th><th>Vehicle</th><th>Hours</th><th>Rate</th><th>Amount</th><th></th></tr>{% for e in recent %}<tr><td>{{e.work_date}}</td><td>{{e.customer_name}}</td><td>{{e.driver_name}}</td><td>{{e.vehicle_number}}<br><small>{{e.vehicle_type}}</small></td><td>{{e.hours|hours_fmt}}</td><td>{{e.rate_per_hour|inr}}</td><td>{{e.amount|inr}}</td><td><a class="btn btn-sm btn-outline-primary" href="{{url_for('edit_work',entry_id=e.id)}}">Edit</a> <a class="btn btn-sm btn-outline-dark" href="{{url_for('bill',entry_id=e.id)}}">Bill</a></td></tr>{% else %}<tr><td colspan="8">No work records.</td></tr>{% endfor %}</table></div></div>{% endblock %}
+{% extends 'base.html' %}
+{% block content %}
+<div class="hero mb-4">
+  <div class="row align-items-center">
+    <div class="col-lg-8">
+      <div class="d-flex align-items-center gap-3">
+        <img src="{{ url_for('static', filename='logo.png') }}" class="hero-logo" alt="Logo">
+        <div>
+          <div class="text-uppercase small fw-bold" style="color:#ffd45a;letter-spacing:.12em">Admin Control Center</div>
+          <h1 class="h3 fw-bold mb-1">Earth Movers Management</h1>
+          <p class="mb-0 text-white-50">Manage customers, operators, machines, working hours and billing in one place.</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+      <div class="small text-white-50">Today</div>
+      <div class="h5 fw-bold mb-3">{{ today }}</div>
+      <a class="btn btn-brand" href="{{ url_for('add_work') }}"><i class="bi bi-plus-circle me-1"></i>New Work Entry</a>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-sm-6 col-xl-3"><div class="card stat-card p-3 h-100"><div class="d-flex justify-content-between"><div><div class="muted small">Today's Hours</div><div class="stat mt-1">{{ totals.hours|hours_fmt }}</div></div><div class="stat-icon"><i class="bi bi-clock-history"></i></div></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card stat-card p-3 h-100"><div class="d-flex justify-content-between"><div><div class="muted small">Today's Earnings</div><div class="stat mt-1">{{ totals.amount|inr }}</div></div><div class="stat-icon"><i class="bi bi-cash-stack"></i></div></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card stat-card p-3 h-100"><div class="d-flex justify-content-between"><div><div class="muted small">Total Machines</div><div class="stat mt-1">{{ vehicle_count }}</div></div><div class="stat-icon"><i class="bi bi-truck-front"></i></div></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card stat-card p-3 h-100"><div class="d-flex justify-content-between"><div><div class="muted small">Active Operators</div><div class="stat mt-1">{{ active_drivers }}</div></div><div class="stat-icon"><i class="bi bi-person-check"></i></div></div></div></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-3"><a class="card quick-card p-3 h-100 text-dark" href="{{ url_for('customers') }}"><div class="quick-icon"><i class="bi bi-people-fill"></i></div><h6 class="fw-bold mt-2 mb-1">Customers</h6><div class="small muted">Manage customer records</div></a></div>
+  <div class="col-md-3"><a class="card quick-card p-3 h-100 text-dark" href="{{ url_for('drivers') }}"><div class="quick-icon"><i class="bi bi-person-badge-fill"></i></div><h6 class="fw-bold mt-2 mb-1">Operators</h6><div class="small muted">Track operators & history</div></a></div>
+  <div class="col-md-3"><a class="card quick-card p-3 h-100 text-dark" href="{{ url_for('vehicles') }}"><div class="quick-icon"><i class="bi bi-truck-front-fill"></i></div><h6 class="fw-bold mt-2 mb-1">Machines</h6><div class="small muted">JCB, Tipper & Tractor</div></a></div>
+  <div class="col-md-3"><a class="card quick-card p-3 h-100 text-dark" href="{{ url_for('rates') }}"><div class="quick-icon"><i class="bi bi-currency-rupee"></i></div><h6 class="fw-bold mt-2 mb-1">Market Rates</h6><div class="small muted">Update hourly pricing</div></a></div>
+</div>
+
+<div class="card p-3 p-lg-4">
+  <div class="section-head mb-3"><div><h5 class="fw-bold mb-1">Recent Work</h5><div class="small muted">Latest saved work entries</div></div><a class="btn btn-sm btn-outline-secondary" href="{{ url_for('reports') }}">View All</a></div>
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Date</th><th>Customer</th><th>Operator</th><th>Machine</th><th>Hours</th><th>Rate</th><th>Amount</th><th>Action</th></tr></thead>
+      <tbody>
+      {% for e in recent %}
+      <tr><td class="fw-semibold">{{ e.work_date }}</td><td>{{ e.customer_name }}</td><td>{{ e.driver_name }}</td><td><span class="fw-semibold">{{ e.vehicle_number }}</span><br><small class="muted">{{ e.vehicle_type }}</small></td><td>{{ e.hours|hours_fmt }}</td><td>{{ e.rate_per_hour|inr }}</td><td class="fw-bold">{{ e.amount|inr }}</td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_work',entry_id=e.id) }}"><i class="bi bi-pencil"></i></a> <a class="btn btn-sm btn-outline-dark" href="{{ url_for('bill',entry_id=e.id) }}"><i class="bi bi-receipt"></i></a></td></tr>
+      {% else %}<tr><td colspan="8" class="text-center py-4 muted">No work records yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
