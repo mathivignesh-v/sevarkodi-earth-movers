@@ -1,17 +1,1 @@
-{% extends "base.html" %}
-{% block content %}
-<div class="form-card">
-  <form method="post">
-    {% if kind == "driver" %}
-    <label>Driver Name<input name="name" required placeholder="Kumar"></label>
-    <label>Phone Number<input name="phone" required placeholder="+91 98765 43210"></label>
-    <label>Status<select name="status"><option>Active</option><option>Inactive</option></select></label>
-    {% else %}
-    <label>Vehicle Number<input name="number" required placeholder="TN 33 AB 1234"></label>
-    <label>Vehicle Type<input name="type" required placeholder="JCB 3DX"></label>
-    <label>Status<select name="status"><option>Idle</option><option>Working</option></select></label>
-    {% endif %}
-    <button class="btn wide" type="submit">Save</button>
-  </form>
-</div>
-{% endblock %}
+{% extends 'base.html' %}{% block content %}<h2>{{title}}</h2><div class="card p-4 mt-3"><form method="post">{% if kind=='driver' %}<label>Name</label><input class="form-control mb-3" name="name" required><label>Phone</label><input class="form-control mb-3" name="phone" required><label>Status</label><select class="form-select mb-3" name="status"><option>Active</option><option>Inactive</option></select>{% else %}<label>Vehicle Number</label><input class="form-control mb-3" name="number" required><label>Vehicle Type</label><input class="form-control mb-3" name="type" placeholder="JCB 3DX / Tipper / Tractor" required><label>Initial Rate / Hour</label><input class="form-control mb-3" type="number" name="rate_per_hour" min="0" value="0"><label>Status</label><select class="form-select mb-3" name="status"><option>Idle</option><option>Working</option></select>{% endif %}<button class="btn btn-dark">Save</button></form></div>{% endblock %}

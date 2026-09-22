@@ -1,17 +1,1 @@
-{% extends "base.html" %}
-{% set title = "Drivers" %}
-{% block content %}
-<div class="toolbar">
-  <div class="search">⌕ <input id="search" oninput="filterCards()" placeholder="Search driver"></div>
-  <a class="btn" href="{{ url_for('add_driver') }}">+ Add Driver</a>
-</div>
-<div class="cards" id="cards">
-{% for d in drivers %}
-  <a class="person-card" data-name="{{ d.name|lower }}" href="{{ url_for('driver_detail', driver_id=d.id) }}">
-    <div class="avatar">{{ d.name[0] }}</div>
-    <div class="person-main"><b>{{ d.name }}</b><span>{{ d.phone }}</span><small>{{ "%.1f"|format(d.total_hours) }} hours · {{ d.total_amount|inr }}</small></div>
-    <span class="status {{ 'active-status' if d.status=='Active' else 'inactive-status' }}">{{ d.status }}</span><span class="arrow">›</span><form method="post" action="{{ url_for('delete_driver', driver_id=d.id) }}" class="delete-form" onclick="event.stopPropagation()" onsubmit="return confirm('Delete this driver? This is allowed only if the driver has no work records.');"><button class="delete-btn" type="submit">Delete</button></form>
-  </a>
-{% endfor %}
-</div>
-{% endblock %}
+{% extends 'base.html' %}{% block content %}<div class="d-flex justify-content-between mb-3"><h2>Operators</h2><a class="btn btn-dark" href="{{url_for('add_driver')}}">Add Operator</a></div><div class="card p-3"><table class="table"><tr><th>Name</th><th>Phone</th><th>Status</th><th>Total Hours</th><th>Total Amount</th><th>Action</th></tr>{% for d in drivers %}<tr><td><a href="{{url_for('driver_detail',driver_id=d.id)}}">{{d.name}}</a></td><td>{{d.phone}}</td><td>{{d.status}}</td><td>{{d.total_hours|hours_fmt}}</td><td>{{d.total_amount|inr}}</td><td><a class="btn btn-sm btn-outline-primary" href="{{url_for('driver_detail',driver_id=d.id)}}">History</a></td></tr>{% endfor %}</table></div>{% endblock %}
