@@ -1,86 +1,69 @@
 {% extends 'base.html' %}{% block content %}
 <div class="section-head mb-4">
-  <div><h2 class="page-title mb-1">Reports & Payments</h2><div class="muted">Review work, record customer payments, and manage payment history.</div></div>
+  <div><h2 class="page-title mb-1">Reports & Payments</h2><div class="muted">Review work, customer balances, statements, bills, payments, and extra work.</div></div>
   <div class="d-flex gap-2"><a class="btn btn-outline-primary" href="{{ url_for('add_driver_extra') }}"><i class="bi bi-plus-circle me-1"></i>Add Extra Work</a><a class="btn btn-brand" href="{{ url_for('add_work') }}"><i class="bi bi-plus-lg me-1"></i>Add Work</a></div>
 </div>
 
 <div class="card p-3 mb-4">
   <form>
     <div class="row g-2 align-items-end">
-      <div class="col-md-4">
-        <label>Filter by Operator</label>
-        <select class="form-select" name="driver">
-          <option value="">All Operators</option>
-          {% for d in drivers %}<option value="{{ d.id }}" {% if selected|string==d.id|string %}selected{% endif %}>{{ d.name }}</option>{% endfor %}
-        </select>
-      </div>
-      <div class="col-md-4">
-        <label>Filter by Customer</label>
-        <select class="form-select" name="customer">
-          <option value="">All Customers</option>
-          {% for c in customers %}<option value="{{ c.id }}" {% if selected_customer|string==c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
-        </select>
-      </div>
+      <div class="col-md-4"><label>Filter by Operator</label><select class="form-select" name="driver"><option value="">All Operators</option>{% for d in drivers %}<option value="{{ d.id }}" {% if selected|string==d.id|string %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-4"><label>Filter by Customer</label><select class="form-select" name="customer"><option value="">All Customers</option>{% for c in customers %}<option value="{{ c.id }}" {% if selected_customer|string==c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
       <div class="col-md-2"><button class="btn btn-navy w-100"><i class="bi bi-funnel me-1"></i>Filter</button></div>
       <div class="col-md-2"><a class="btn btn-outline-secondary w-100" href="{{ url_for('reports') }}">Clear</a></div>
     </div>
   </form>
 </div>
 
-<div class="row g-3 mb-4">
-  <div class="col-lg-7">
-    <div class="card p-3 p-lg-4 h-100">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div><h5 class="mb-1">Add Customer Payment</h5><div class="muted small">Use this for full or partial settlements.</div></div>
-        <i class="bi bi-wallet2 fs-3 text-warning"></i>
-      </div>
-      <form method="post" action="{{ url_for('add_payment') }}">
-        <div class="row g-3">
-          <div class="col-md-6"><label>Customer</label><select class="form-select" name="customer_id" required><option value="">Select customer</option>{% for c in payment_customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
-          <div class="col-md-3"><label>Payment Date</label><input class="form-control" type="date" name="payment_date" value="{{ today }}" required></div>
-          <div class="col-md-3"><label>Amount</label><input class="form-control" type="number" name="amount" min="0.01" step="0.01" placeholder="10000" required></div>
-          <div class="col-12"><label>Note <span class="muted fw-normal">(optional)</span></label><input class="form-control" name="note" placeholder="Cash / UPI / Bank transfer / other note"></div>
-        </div>
-        <button class="btn btn-brand mt-3"><i class="bi bi-check-lg me-1"></i>Record Payment</button>
-      </form>
-    </div>
-  </div>
-  <div class="col-lg-5">
-    <div class="card p-3 p-lg-4 h-100">
-      <h5 class="mb-1">Payment Tracking</h5>
-      <div class="muted small mb-3">Every payment is saved separately, so partial payments remain visible in the customer's ledger.</div>
-      <div class="p-3 rounded-3" style="background:#fff8dc;border:1px solid #f5d66b">
-        <div class="fw-bold">Example</div>
-        <div class="small mt-1">Total bill ₹30,000 → payment ₹10,000 → remaining balance ₹20,000.</div>
-      </div>
-    </div>
-  </div>
-</div>
-
 <div class="card p-3 p-lg-4 mb-4">
-  <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Work Records</h5><span class="muted small">{{ entries|length }} record(s)</span></div>
-  <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Customer</th><th>Operator</th><th>Machine</th><th>Hours</th><th>Amount</th><th>Action</th></tr></thead><tbody>
-  {% for e in entries %}<tr>
-    <td class="fw-semibold">{{ e.work_date }}</td>
-    <td>{% if e.customer_name != '—' %}<a href="{{ url_for('customer_detail', customer_id=e.customer_id) }}">{{ e.customer_name }}</a>{% else %}—{% endif %}</td>
-    <td>{{ e.driver_name }}</td>
-    <td><span class="fw-semibold">{{ e.vehicle_number }}</span><br><small class="muted">{{ e.vehicle_type }}</small></td>
-    <td>{{ e.hours|hours_fmt }}</td><td class="fw-bold">{{ e.amount|inr }}</td>
-    <td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_work',entry_id=e.id) }}"><i class="bi bi-pencil"></i></a> <a class="btn btn-sm btn-outline-dark" href="{{ url_for('bill',entry_id=e.id) }}"><i class="bi bi-receipt"></i></a> <form class="d-inline" method="post" action="{{ url_for('delete_work',entry_id=e.id) }}"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this work record?')"><i class="bi bi-trash"></i></button></form></td>
-  </tr>{% else %}<tr><td colspan="7" class="text-center py-5 muted">No work records found.</td></tr>{% endfor %}
-  </tbody></table></div>
+  <div class="d-flex justify-content-between align-items-center mb-3"><div><h5 class="mb-1">Customer Billing</h5><div class="muted small">Statement and Bill are available even when no payment has been received.</div></div></div>
+  <div class="row g-3">
+    {% for c in customer_accounts %}
+    <div class="col-lg-6">
+      <div class="border rounded-4 p-3 h-100">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div><h6 class="mb-1">{{ c.name }}</h6><div class="muted small">{{ c.phone or 'No phone' }}</div></div>
+          <span class="badge-soft {{ 'badge-active' if c.status=='Active' else 'badge-inactive' }}">{{ c.status }}</span>
+        </div>
+        <div class="row g-2 mt-2">
+          <div class="col-4"><div class="small muted">Total</div><strong>{{ c.total|inr }}</strong></div>
+          <div class="col-4"><div class="small muted">Paid</div><strong class="text-success">{{ c.paid|inr }}</strong></div>
+          <div class="col-4"><div class="small muted">Balance</div><strong class="{% if c.balance > 0 %}text-danger{% else %}text-success{% endif %}">{{ c.balance|inr }}</strong></div>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('customer_statement', customer_id=c.id) }}"><i class="bi bi-file-text me-1"></i>Statement</a>
+          <a class="btn btn-sm btn-brand" href="{{ url_for('customer_bill', customer_id=c.id) }}"><i class="bi bi-receipt me-1"></i>Bill</a>
+          <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('customer_detail', customer_id=c.id) }}">View Customer</a>
+        </div>
+      </div>
+    </div>
+    {% else %}<div class="col-12 text-center py-4 muted">No customers added yet.</div>{% endfor %}
+  </div>
 </div>
 
-<div class="card p-3 p-lg-4">
-  <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Payment History</h5><span class="muted small">Latest payments first</span></div>
-  <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Customer</th><th>Payment</th><th>Note</th><th>Action</th></tr></thead><tbody>
-  {% for p in payments %}<tr>
-    <td>{{ p.payment_date }}</td><td><a href="{{ url_for('customer_detail', customer_id=p.customer_id) }}">{{ p.customer_name }}</a></td>
-    <td class="text-success fw-bold">{{ p.amount|inr }}</td><td>{{ p.note or '-' }}</td>
-    <td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_payment',payment_id=p.id) }}"><i class="bi bi-pencil"></i></a> <form class="d-inline" method="post" action="{{ url_for('delete_payment',payment_id=p.id) }}"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this payment? The customer balance will increase again.')"><i class="bi bi-trash"></i></button></form></td>
-  </tr>{% else %}<tr><td colspan="5" class="text-center py-5 muted">No payments recorded yet.</td></tr>{% endfor %}
-  </tbody></table></div>
+<div class="row g-3 mb-4">
+  <div class="col-lg-7"><div class="card p-3 p-lg-4 h-100">
+    <div class="d-flex justify-content-between align-items-center mb-3"><div><h5 class="mb-1">Add Customer Payment</h5><div class="muted small">Payment is optional; it only updates Paid and Balance.</div></div><i class="bi bi-wallet2 fs-3 text-warning"></i></div>
+    <form method="post" action="{{ url_for('add_payment') }}"><div class="row g-3">
+      <div class="col-md-6"><label>Customer</label><select class="form-select" name="customer_id" required><option value="">Select customer</option>{% for c in payment_customers %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select></div>
+      <div class="col-md-3"><label>Payment Date</label><input class="form-control" type="date" name="payment_date" value="{{ today }}" required></div>
+      <div class="col-md-3"><label>Amount</label><input class="form-control" type="number" name="amount" min="0.01" step="0.01" required></div>
+      <div class="col-12"><label>Note <span class="muted fw-normal">(optional)</span></label><input class="form-control" name="note" placeholder="Cash / UPI / Bank transfer / other note"></div>
+    </div><button class="btn btn-brand mt-3"><i class="bi bi-check-lg me-1"></i>Record Payment</button></form>
+  </div></div>
+  <div class="col-lg-5"><div class="card p-3 p-lg-4 h-100"><h5 class="mb-1">Billing Flow</h5><div class="muted small mb-3">Admin can send the bill before receiving any payment.</div><div class="p-3 rounded-3" style="background:#fff8dc;border:1px solid #f5d66b"><div class="fw-bold">Example</div><div class="small mt-1">Total ₹30,000 → Paid ₹0 → Balance ₹30,000. Statement and Bill are still available.</div></div></div></div>
 </div>
 
-<div class="card p-3 p-lg-4 mt-4"><div class="d-flex justify-content-between align-items-center mb-3"><div><h5 class="mb-1">Extra Work History</h5><div class="muted small">The amount is included in totals, but only the admin-entered reason is displayed.</div></div></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Operator</th><th>Customer</th><th>Reason</th><th>Action</th></tr></thead><tbody>{% for x in extras %}<tr><td>{{ x.work_date }}</td><td>{{ x.driver_name }}</td><td>{{ x.customer_name or '—' }}</td><td class="fw-semibold">{{ x.reason }}</td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_driver_extra',extra_id=x.id) }}">Edit</a> <form class="d-inline" method="post" action="{{ url_for('delete_driver_extra',extra_id=x.id) }}"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this extra work entry?')">Delete</button></form></td></tr>{% else %}<tr><td colspan="5" class="text-center py-5 muted">No extra work entries found.</td></tr>{% endfor %}</tbody></table></div></div>
+<div class="card p-3 p-lg-4 mb-4"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Work Records</h5><span class="muted small">{{ entries|length }} record(s)</span></div>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Customer</th><th>Operator</th><th>Machine</th><th>Hours</th><th>Amount</th><th>Action</th></tr></thead><tbody>
+{% for e in entries %}<tr><td class="fw-semibold">{{ e.work_date }}</td><td>{% if e.customer_name != '—' %}<a href="{{ url_for('customer_detail', customer_id=e.customer_id) }}">{{ e.customer_name }}</a>{% else %}—{% endif %}</td><td>{{ e.driver_name }}</td><td><span class="fw-semibold">{{ e.vehicle_number }}</span><br><small class="muted">{{ e.vehicle_type }}</small></td><td>{{ e.hours|hours_fmt }}</td><td class="fw-bold">{{ e.amount|inr }}</td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_work',entry_id=e.id) }}"><i class="bi bi-pencil"></i></a> <a class="btn btn-sm btn-outline-dark" href="{{ url_for('bill',entry_id=e.id) }}"><i class="bi bi-receipt"></i></a> <form class="d-inline" method="post" action="{{ url_for('delete_work',entry_id=e.id) }}"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this work record?')"><i class="bi bi-trash"></i></button></form></td></tr>
+{% else %}<tr><td colspan="7" class="text-center py-5 muted">No work records found.</td></tr>{% endfor %}</tbody></table></div></div>
+
+<div class="card p-3 p-lg-4 mb-4"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Extra Work</h5><a class="btn btn-sm btn-outline-primary" href="{{ url_for('add_driver_extra') }}">Add Extra Work</a></div>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Driver</th><th>Customer</th><th>Amount</th><th>Reason</th><th>Action</th></tr></thead><tbody>
+{% for x in extras %}<tr><td>{{ x.work_date }}</td><td>{{ x.driver_name }}</td><td>{{ x.customer_name or '—' }}</td><td class="fw-bold">{{ x.amount|inr }}</td><td class="fw-semibold">{{ x.reason }}</td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_driver_extra',extra_id=x.id) }}">Edit</a> <form class="d-inline" method="post" action="{{ url_for('delete_driver_extra',extra_id=x.id) }}"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this extra work entry?')">Delete</button></form></td></tr>{% else %}<tr><td colspan="6" class="text-center py-4 muted">No extra work entries.</td></tr>{% endfor %}</tbody></table></div></div>
+
+<div class="card p-3 p-lg-4"><div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Payment History</h5><span class="muted small">Latest payments first</span></div>
+<div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Customer</th><th>Payment</th><th>Note</th><th>Action</th></tr></thead><tbody>
+{% for p in payments %}<tr><td>{{ p.payment_date }}</td><td><a href="{{ url_for('customer_detail', customer_id=p.customer_id) }}">{{ p.customer_name }}</a></td><td class="text-success fw-bold">{{ p.amount|inr }}</td><td>{{ p.note or '-' }}</td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_payment',payment_id=p.id) }}"><i class="bi bi-pencil"></i></a> <form class="d-inline" method="post" action="{{ url_for('delete_payment',payment_id=p.id) }}"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this payment?')"><i class="bi bi-trash"></i></button></form></td></tr>{% else %}<tr><td colspan="5" class="text-center py-5 muted">No payments recorded yet.</td></tr>{% endfor %}</tbody></table></div></div>
 {% endblock %}
