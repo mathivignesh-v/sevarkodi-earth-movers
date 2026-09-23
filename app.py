@@ -578,11 +578,18 @@ def reports():
         FROM driver_extras x JOIN drivers d ON d.id=x.driver_id
         LEFT JOIN customers c ON c.id=x.customer_id
         ORDER BY x.work_date DESC,x.id DESC""")
+
+    customer_accounts=[]
+    for c in customers:
+        item=dict(c)
+        item.update(customer_financials(c["id"]))
+        customer_accounts.append(item)
+
     payment_customers = customers
     return render_template(
         "reports.html",
         drivers=drivers, customers=customers, entries=entries, payments=payments, extras=extras,
-        payment_customers=payment_customers,
+        customer_accounts=customer_accounts, payment_customers=payment_customers,
         selected=selected_driver, selected_customer=selected_customer,
         today=datetime.now().strftime("%Y-%m-%d")
     )
@@ -689,6 +696,24 @@ def edit_work(entry_id):
     if request.method=="POST":
         driver_id=save_work(request.form,entry_id); flash("Saved work entry updated. The bill was recalculated automatically."); return redirect(url_for("driver_detail",driver_id=driver_id))
     return render_template("work_form.html",title="Edit Work Entry",drivers=drivers,vehicles=vehicles,customers=customers,entry=entry,rates=query_all("SELECT * FROM rates"))
+
+@app.route("/customer/<int:customer_id>/bill")
+@login_required
+def customer_bill(customer_id):
+    customer = query_one("SELECT * FROM customers WHERE id=?", (customer_id,))
+    if not customer:
+        return "Customer not found", 404
+    entries = query_all("""SELECT w.*, d.name driver_name, v.number vehicle_number, v.type vehicle_type
+        FROM work_entries w
+        JOIN drivers d ON d.id=w.driver_id
+        JOIN vehicles v ON v.id=w.vehicle_id
+        WHERE w.customer_id=? ORDER BY w.work_date ASC, w.id ASC""", (customer_id,))
+    extras = query_all("""SELECT x.*, d.name driver_name
+        FROM driver_extras x JOIN drivers d ON d.id=x.driver_id
+        WHERE x.customer_id=? ORDER BY x.work_date ASC, x.id ASC""", (customer_id,))
+    payments = query_all("SELECT * FROM payments WHERE customer_id=? ORDER BY payment_date ASC, id ASC", (customer_id,))
+    financials = customer_financials(customer_id)
+    return render_template("customer_bill.html", customer=customer, entries=entries, extras=extras, payments=payments, **financials)
 
 @app.route("/bill/<int:entry_id>")
 @login_required
