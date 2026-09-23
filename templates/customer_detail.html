@@ -1,0 +1,48 @@
+{% extends 'base.html' %}{% block content %}
+<div class="section-head mb-4">
+  <div><h2 class="page-title mb-1">{{ customer.name }}</h2><div class="muted">{{ customer.phone or 'No phone' }} · {{ customer.address or 'No address' }}</div></div>
+  <div class="d-flex gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('edit_customer',customer_id=customer.id) }}">Edit Customer</a><a class="btn btn-brand" href="{{ url_for('customer_statement',customer_id=customer.id) }}"><i class="bi bi-receipt me-1"></i>Statement / Bill</a></div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-4"><div class="card stat-card p-4"><div class="muted">Total Bill</div><div class="stat mt-1">{{ total|inr }}</div></div></div>
+  <div class="col-md-4"><div class="card stat-card p-4"><div class="muted">Total Paid</div><div class="stat mt-1 text-success">{{ paid|inr }}</div></div></div>
+  <div class="col-md-4"><div class="card stat-card p-4"><div class="muted">Balance Amount</div><div class="stat mt-1 {% if balance > 0 %}text-danger{% else %}text-success{% endif %}">{{ balance|inr }}</div></div></div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card p-3 p-lg-4">
+      <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Work / Billing Records</h5><span class="muted small">{{ entries|length }} record(s)</span></div>
+      <div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Operator</th><th>Machine</th><th>Hours</th><th>Amount</th><th>Bill</th></tr></thead><tbody>
+      {% for e in entries %}<tr><td>{{ e.work_date }}</td><td>{{ e.driver_name }}</td><td>{{ e.vehicle_number }}<br><small class="muted">{{ e.vehicle_type }}</small></td><td>{{ e.hours|hours_fmt }}</td><td class="fw-bold">{{ e.amount|inr }}</td><td><a class="btn btn-sm btn-outline-dark" href="{{ url_for('bill',entry_id=e.id) }}">View Bill</a></td></tr>
+      {% else %}<tr><td colspan="6" class="text-center py-5 muted">No billing records for this customer.</td></tr>{% endfor %}
+      </tbody></table></div>
+    </div>
+  </div>
+  <div class="col-lg-5">
+    <div class="card p-3 p-lg-4">
+      <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Payment History</h5><span class="badge-soft badge-active">{{ payments|length }} payment(s)</span></div>
+      <form method="post" action="{{ url_for('add_payment') }}" class="mb-4">
+        <input type="hidden" name="customer_id" value="{{ customer.id }}">
+        <div class="row g-2">
+          <div class="col-6"><label>Date</label><input class="form-control" type="date" name="payment_date" value="{{ today }}" required></div>
+          <div class="col-6"><label>Amount</label><input class="form-control" type="number" name="amount" min="0.01" step="0.01" placeholder="10000" required></div>
+          <div class="col-12"><label>Note</label><input class="form-control" name="note" placeholder="Payment note"></div>
+        </div>
+        <button class="btn btn-brand mt-2 w-100"><i class="bi bi-plus-lg me-1"></i>Add Payment</button>
+      </form>
+      {% for p in payments %}
+      <div class="border rounded-3 p-3 mb-2">
+        <div class="d-flex justify-content-between"><strong>{{ p.payment_date }}</strong><span class="text-success fw-bold">{{ p.amount|inr }}</span></div>
+        <div class="small muted mt-1">{{ p.note or 'Payment received' }}</div>
+        <div class="mt-2">
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_payment',payment_id=p.id) }}">Edit</a>
+          <form class="d-inline" method="post" action="{{ url_for('delete_payment',payment_id=p.id) }}"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this payment?')">Delete</button></form>
+        </div>
+      </div>
+      {% else %}<div class="muted text-center py-3">No payments recorded yet.</div>{% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

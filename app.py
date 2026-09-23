@@ -115,6 +115,11 @@ def init_db():
             hours DOUBLE PRECISION NOT NULL, rate_per_hour DOUBLE PRECISION NOT NULL DEFAULT 0,
             amount DOUBLE PRECISION NOT NULL, customer_id INTEGER REFERENCES customers(id)
         );
+        CREATE TABLE IF NOT EXISTS payments (
+            id SERIAL PRIMARY KEY, customer_id INTEGER NOT NULL REFERENCES customers(id),
+            payment_date TEXT NOT NULL, amount DOUBLE PRECISION NOT NULL,
+            note TEXT DEFAULT ''
+        );
         """)
     else:
         conn.executescript("""
@@ -140,6 +145,11 @@ def init_db():
             end_time TEXT NOT NULL, hours REAL NOT NULL, rate_per_hour REAL NOT NULL DEFAULT 0,
             amount REAL NOT NULL, customer_id INTEGER,
             FOREIGN KEY(driver_id) REFERENCES drivers(id), FOREIGN KEY(vehicle_id) REFERENCES vehicles(id),
+            FOREIGN KEY(customer_id) REFERENCES customers(id)
+        );
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, customer_id INTEGER NOT NULL,
+            payment_date TEXT NOT NULL, amount REAL NOT NULL, note TEXT DEFAULT '',
             FOREIGN KEY(customer_id) REFERENCES customers(id)
         );
         """)
@@ -187,6 +197,24 @@ def query_all(sql, args=()):
     try: return conn.execute(sql,args).fetchall()
     finally: conn.close()
 
+def customer_financials(customer_id):
+    """Return customer billing total, payments and current balance."""
+    total_row = query_one(
+        "SELECT COALESCE(SUM(amount),0) total FROM work_entries WHERE customer_id=?",
+        (customer_id,)
+    )
+    paid_row = query_one(
+        "SELECT COALESCE(SUM(amount),0) total FROM payments WHERE customer_id=?",
+        (customer_id,)
+    )
+    total = float(total_row["total"] or 0)
+    paid = float(paid_row["total"] or 0)
+    return {
+        "total": total,
+        "paid": paid,
+        "balance": round(total - paid, 2)
+    }
+
 @app.template_filter("inr")
 def inr(value): return "₹{:,.0f}".format(float(value or 0))
 
@@ -233,7 +261,14 @@ def dashboard():
 
 @app.route("/customers")
 @login_required
-def customers(): return render_template("customers.html", customers=query_all("SELECT * FROM customers ORDER BY name"))
+def customers():
+    rows = query_all("SELECT * FROM customers ORDER BY name")
+    customers_data = []
+    for c in rows:
+        item = dict(c)
+        item.update(customer_financials(c["id"]))
+        customers_data.append(item)
+    return render_template("customers.html", customers=customers_data)
 
 @app.route("/add-customer", methods=["GET","POST"])
 @login_required
@@ -254,6 +289,142 @@ def edit_customer(customer_id):
             request.form["name"].strip(),request.form.get("phone","").strip(),request.form.get("address","").strip(),request.form.get("status","Active"),customer_id)); conn.commit(); conn.close()
         flash("Customer updated successfully."); return redirect(url_for("customers"))
     return render_template("customer_form.html", title="Edit Customer", customer=customer)
+
+@app.route("/customer/<int:customer_id>")
+@login_required
+def customer_detail(customer_id):
+    customer = query_one("SELECT * FROM customers WHERE id=?", (customer_id,))
+    if not customer:
+        flash("Customer not found.")
+        return redirect(url_for("customers"))
+
+    entries = query_all("""SELECT w.*, d.name driver_name, v.number vehicle_number,
+        v.type vehicle_type
+        FROM work_entries w
+        JOIN drivers d ON d.id=w.driver_id
+        JOIN vehicles v ON v.id=w.vehicle_id
+        WHERE w.customer_id=?
+        ORDER BY w.work_date DESC, w.id DESC""", (customer_id,))
+    payments = query_all(
+        "SELECT * FROM payments WHERE customer_id=? ORDER BY payment_date DESC, id DESC",
+        (customer_id,)
+    )
+    financials = customer_financials(customer_id)
+    today = datetime.now().strftime("%Y-%m-%d")
+    return render_template(
+        "customer_detail.html",
+        customer=customer,
+        entries=entries,
+        payments=payments,
+        today=today,
+        **financials
+    )
+
+@app.route("/customer/<int:customer_id>/statement")
+@login_required
+def customer_statement(customer_id):
+    customer = query_one("SELECT * FROM customers WHERE id=?", (customer_id,))
+    if not customer:
+        return "Customer not found", 404
+
+    entries = query_all("""SELECT w.*, d.name driver_name, v.number vehicle_number,
+        v.type vehicle_type
+        FROM work_entries w
+        JOIN drivers d ON d.id=w.driver_id
+        JOIN vehicles v ON v.id=w.vehicle_id
+        WHERE w.customer_id=?
+        ORDER BY w.work_date ASC, w.id ASC""", (customer_id,))
+    payments = query_all(
+        "SELECT * FROM payments WHERE customer_id=? ORDER BY payment_date ASC, id ASC",
+        (customer_id,)
+    )
+    financials = customer_financials(customer_id)
+    return render_template(
+        "customer_statement.html",
+        customer=customer,
+        entries=entries,
+        payments=payments,
+        **financials
+    )
+
+@app.route("/add-payment", methods=["POST"])
+@login_required
+def add_payment():
+    customer_id = request.form.get("customer_id")
+    payment_date = request.form.get("payment_date") or datetime.now().strftime("%Y-%m-%d")
+    note = request.form.get("note", "").strip()
+    try:
+        amount = float(request.form.get("amount") or 0)
+    except ValueError:
+        amount = 0
+    if not customer_id or amount <= 0:
+        flash("Enter a valid customer and payment amount.")
+        return redirect(url_for("reports"))
+
+    financials = customer_financials(customer_id)
+    if amount > financials["balance"] + 0.01:
+        flash("Payment cannot be greater than the customer's current pending balance.")
+        return redirect(url_for("customer_detail", customer_id=customer_id))
+
+    conn = db()
+    conn.execute(
+        "INSERT INTO payments(customer_id,payment_date,amount,note) VALUES(?,?,?,?)",
+        (customer_id, payment_date, round(amount, 2), note)
+    )
+    conn.commit(); conn.close()
+    flash("Payment recorded successfully. Customer balance was updated.")
+    return redirect(url_for("customer_detail", customer_id=customer_id))
+
+@app.route("/edit-payment/<int:payment_id>", methods=["GET","POST"])
+@login_required
+def edit_payment(payment_id):
+    payment = query_one("SELECT * FROM payments WHERE id=?", (payment_id,))
+    if not payment:
+        flash("Payment not found.")
+        return redirect(url_for("reports"))
+
+    if request.method == "POST":
+        payment_date = request.form.get("payment_date") or payment["payment_date"]
+        note = request.form.get("note", "").strip()
+        try:
+            amount = float(request.form.get("amount") or 0)
+        except ValueError:
+            amount = 0
+
+        if amount <= 0:
+            flash("Payment amount must be greater than zero.")
+            return redirect(url_for("edit_payment", payment_id=payment_id))
+
+        financials = customer_financials(payment["customer_id"])
+        available = financials["balance"] + float(payment["amount"] or 0)
+        if amount > available + 0.01:
+            flash("Payment cannot be greater than the customer's pending balance.")
+            return redirect(url_for("edit_payment", payment_id=payment_id))
+
+        conn = db()
+        conn.execute(
+            "UPDATE payments SET payment_date=?, amount=?, note=? WHERE id=?",
+            (payment_date, round(amount, 2), note, payment_id)
+        )
+        conn.commit(); conn.close()
+        flash("Payment updated successfully.")
+        return redirect(url_for("customer_detail", customer_id=payment["customer_id"]))
+
+    return render_template("payment_form.html", title="Edit Payment", payment=payment)
+
+@app.post("/delete-payment/<int:payment_id>")
+@login_required
+def delete_payment(payment_id):
+    payment = query_one("SELECT * FROM payments WHERE id=?", (payment_id,))
+    if not payment:
+        flash("Payment not found.")
+        return redirect(url_for("reports"))
+
+    conn = db()
+    conn.execute("DELETE FROM payments WHERE id=?", (payment_id,))
+    conn.commit(); conn.close()
+    flash("Payment deleted. Customer balance was recalculated.")
+    return redirect(url_for("customer_detail", customer_id=payment["customer_id"]))
 
 @app.route("/drivers")
 @login_required
@@ -295,11 +466,37 @@ def driver_detail(driver_id):
 @app.route("/reports")
 @login_required
 def reports():
-    selected=request.args.get("driver",""); drivers=query_all("SELECT * FROM drivers ORDER BY name")
-    base="""SELECT w.*,d.name driver_name,v.number vehicle_number,v.type vehicle_type,COALESCE(c.name,'—') customer_name
-        FROM work_entries w JOIN drivers d ON d.id=w.driver_id JOIN vehicles v ON v.id=w.vehicle_id LEFT JOIN customers c ON c.id=w.customer_id"""
-    entries=query_all(base+" WHERE d.id=? ORDER BY w.work_date DESC,w.start_time DESC",(selected,)) if selected else query_all(base+" ORDER BY w.work_date DESC,w.start_time DESC")
-    return render_template("reports.html",drivers=drivers,entries=entries,selected=selected)
+    selected_driver = request.args.get("driver","")
+    selected_customer = request.args.get("customer","")
+    drivers = query_all("SELECT * FROM drivers ORDER BY name")
+    customers = query_all("SELECT * FROM customers ORDER BY name")
+
+    base="""SELECT w.*,d.name driver_name,v.number vehicle_number,v.type vehicle_type,
+        COALESCE(c.name,'—') customer_name
+        FROM work_entries w
+        JOIN drivers d ON d.id=w.driver_id
+        JOIN vehicles v ON v.id=w.vehicle_id
+        LEFT JOIN customers c ON c.id=w.customer_id"""
+
+    conditions=[]; args=[]
+    if selected_driver:
+        conditions.append("d.id=?"); args.append(selected_driver)
+    if selected_customer:
+        conditions.append("c.id=?"); args.append(selected_customer)
+
+    where = (" WHERE " + " AND ".join(conditions)) if conditions else ""
+    entries = query_all(base + where + " ORDER BY w.work_date DESC,w.start_time DESC", tuple(args))
+
+    payments = query_all("""SELECT p.*, c.name customer_name
+        FROM payments p JOIN customers c ON c.id=p.customer_id
+        ORDER BY p.payment_date DESC, p.id DESC""")
+    payment_customers = customers
+    return render_template(
+        "reports.html",
+        drivers=drivers, customers=customers, entries=entries, payments=payments,
+        payment_customers=payment_customers,
+        selected=selected_driver, selected_customer=selected_customer
+    )
 
 @app.route("/add-driver", methods=["GET","POST"])
 @login_required
@@ -366,10 +563,21 @@ def edit_work(entry_id):
 @login_required
 def bill(entry_id):
     entry=query_one("""SELECT w.*,d.name driver_name,d.phone driver_phone,v.number vehicle_number,v.type vehicle_type,
-        COALESCE(c.name,'—') customer_name,COALESCE(c.phone,'') customer_phone,COALESCE(c.address,'') customer_address
-        FROM work_entries w JOIN drivers d ON d.id=w.driver_id JOIN vehicles v ON v.id=w.vehicle_id LEFT JOIN customers c ON c.id=w.customer_id WHERE w.id=?""",(entry_id,))
+        COALESCE(c.name,'—') customer_name,COALESCE(c.phone,'') customer_phone,COALESCE(c.address,'') customer_address,
+        c.id customer_id
+        FROM work_entries w
+        JOIN drivers d ON d.id=w.driver_id
+        JOIN vehicles v ON v.id=w.vehicle_id
+        LEFT JOIN customers c ON c.id=w.customer_id
+        WHERE w.id=?""",(entry_id,))
     if not entry: return "Bill not found",404
-    return render_template("bill.html",entry=entry)
+
+    financials = customer_financials(entry["customer_id"]) if entry["customer_id"] else {"total": float(entry["amount"]), "paid": 0, "balance": float(entry["amount"])}
+    payments = query_all(
+        "SELECT * FROM payments WHERE customer_id=? ORDER BY payment_date ASC, id ASC",
+        (entry["customer_id"],)
+    ) if entry["customer_id"] else []
+    return render_template("bill.html", entry=entry, payments=payments, **financials)
 
 @app.post("/delete-driver/<int:driver_id>")
 @login_required
@@ -406,7 +614,22 @@ def delete_work(entry_id):
 @app.post("/delete-customer/<int:customer_id>")
 @login_required
 def delete_customer(customer_id):
-    conn=db(); conn.execute("UPDATE work_entries SET customer_id=NULL WHERE customer_id=?",(customer_id,)); conn.execute("DELETE FROM customers WHERE id=?",(customer_id,)); conn.commit(); conn.close(); flash("Customer deleted."); return redirect(url_for("customers"))
+    conn=db()
+    try:
+        customer = conn.execute("SELECT id FROM customers WHERE id=?", (customer_id,)).fetchone()
+        payment_count = conn.execute("SELECT COUNT(*) FROM payments WHERE customer_id=?", (customer_id,)).fetchone()[0]
+        if not customer:
+            flash("Customer not found.")
+        elif payment_count:
+            flash("Cannot delete this customer because payment history exists. Keep the customer record for account history.")
+        else:
+            conn.execute("UPDATE work_entries SET customer_id=NULL WHERE customer_id=?", (customer_id,))
+            conn.execute("DELETE FROM customers WHERE id=?", (customer_id,))
+            conn.commit()
+            flash("Customer deleted.")
+    finally:
+        conn.close()
+    return redirect(url_for("customers"))
 
 init_db()
 

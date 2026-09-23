@@ -10,4 +10,20 @@ body{font-family:Inter,Arial,sans-serif;background:#f3f6fa;color:#172033;margin:
 <div class="item"><div class="label">Date</div><div class="value">{{ entry.work_date }}</div></div>
 <div class="item"><div class="label">Working Hours</div><div class="value">{{ entry.hours|hours_fmt }} hours</div></div>
 <div class="item"><div class="label">Rate</div><div class="value">₹{{ '{:,.2f}'.format(entry.rate_per_hour) }} / hour</div></div>
-</div><div class="total"><span>Total Amount</span><span class="amount">₹{{ '{:,.2f}'.format(entry.amount) }}</span></div><p style="color:#748096;font-size:12px;margin-top:22px">Amount is calculated automatically from working hours × applicable hourly rate.</p></div></div></body></html>
+</div><div class="total"><span>Current Work Amount</span><span class="amount">₹{{ '{:,.2f}'.format(entry.amount) }}</span></div>
+
+<div style="margin-top:22px;border:1px solid #e6ebf2;border-radius:15px;padding:18px">
+  <h3 style="margin:0 0 12px;font-size:17px">Customer Account Summary</h3>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+    <div style="padding:12px;background:#fafbfd;border-radius:10px"><div style="font-size:10px;color:#748096;text-transform:uppercase">Total Bill</div><strong>₹{{ '{:,.2f}'.format(total) }}</strong></div>
+    <div style="padding:12px;background:#f0fdf4;border-radius:10px"><div style="font-size:10px;color:#748096;text-transform:uppercase">Paid</div><strong style="color:#16803c">₹{{ '{:,.2f}'.format(paid) }}</strong></div>
+    <div style="padding:12px;background:#fff7ed;border-radius:10px"><div style="font-size:10px;color:#748096;text-transform:uppercase">Balance</div><strong style="color:#b42318">₹{{ '{:,.2f}'.format(balance) }}</strong></div>
+  </div>
+  {% if payments %}
+  <h4 style="font-size:14px;margin:18px 0 8px">Payment History</h4>
+  {% for p in payments %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #edf1f6;font-size:13px"><span>{{ p.payment_date }}{% if p.note %} · {{ p.note }}{% endif %}</span><strong style="color:#16803c">₹{{ '{:,.2f}'.format(p.amount) }}</strong></div>{% endfor %}
+  {% endif %}
+</div>
+<p style="color:#748096;font-size:12px;margin-top:22px">Amount is calculated automatically from working hours × applicable hourly rate. Customer payments are tracked separately and reduce the outstanding balance.</p>
+{% if entry.customer_id %}<p style="margin-top:10px"><a href="{{ url_for('customer_statement',customer_id=entry.customer_id) }}">Open full customer statement →</a></p>{% endif %}
+</div></div></body></html>

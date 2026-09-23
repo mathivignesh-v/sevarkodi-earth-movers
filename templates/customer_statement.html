@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Customer Statement - {{ customer.name }}</title>
+<style>
+body{font-family:Inter,Arial,sans-serif;background:#f3f6fa;color:#172033;margin:0}.statement{max-width:950px;margin:28px auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 15px 45px rgba(15,23,42,.12)}.head{background:linear-gradient(135deg,#101c2b,#29435d);color:#fff;padding:26px;display:flex;justify-content:space-between;gap:20px;align-items:center}.logo{width:110px;height:80px;object-fit:contain;background:#17283c;border-radius:12px;padding:4px}.head h1{margin:0;font-size:24px}.head p{margin:5px 0 0;color:#ffd45a}.body{padding:28px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:25px}.box{border:1px solid #e5eaf0;border-radius:12px;padding:15px}.label{font-size:11px;text-transform:uppercase;color:#748096}.value{font-size:20px;font-weight:800;margin-top:5px}.paid{color:#16803c}.balance{color:#b42318}.section{margin-top:25px}.section h3{font-size:17px}.row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #edf1f6}.row:last-child{border-bottom:0}.total{background:#fff7d9;border:1px solid #f5d66b;border-radius:12px;padding:16px;display:flex;justify-content:space-between;font-weight:800;font-size:18px}.print{text-align:center;margin-bottom:18px}.print button{border:0;background:#f5b400;padding:10px 18px;border-radius:10px;font-weight:800}@media(max-width:650px){.head{flex-direction:column}.summary{grid-template-columns:1fr}.body{padding:18px}}@media print{body{background:#fff}.statement{box-shadow:none;margin:0;max-width:none;border-radius:0}.print{display:none}}
+</style></head><body>
+<div class="print"><button onclick="window.print()">Print / Save PDF</button></div>
+<div class="statement"><div class="head"><img src="{{ url_for('static',filename='logo.png') }}" class="logo"><div><h1>Customer Statement</h1><p>SEVARKODI EARTH MOVERS</p></div></div>
+<div class="body">
+<div class="box" style="margin-bottom:15px"><div class="label">Customer</div><div class="value">{{ customer.name }}</div><div style="color:#748096;font-size:13px;margin-top:5px">{{ customer.phone or '' }}{% if customer.address %} · {{ customer.address }}{% endif %}</div></div>
+<div class="summary"><div class="box"><div class="label">Total Bill</div><div class="value">₹{{ '{:,.2f}'.format(total) }}</div></div><div class="box"><div class="label">Total Paid</div><div class="value paid">₹{{ '{:,.2f}'.format(paid) }}</div></div><div class="box"><div class="label">Balance</div><div class="value balance">₹{{ '{:,.2f}'.format(balance) }}</div></div></div>
+<div class="section"><h3>Billing Records</h3>
+{% for e in entries %}<div class="row"><span>{{ e.work_date }} · {{ e.vehicle_number }} · {{ e.hours|hours_fmt }} hrs</span><strong>₹{{ '{:,.2f}'.format(e.amount) }}</strong></div>{% else %}<div style="color:#748096">No billing records.</div>{% endfor %}
+</div>
+<div class="section"><h3>Payments Received</h3>
+{% for p in payments %}<div class="row"><span>{{ p.payment_date }}{% if p.note %} · {{ p.note }}{% endif %}</span><strong class="paid">₹{{ '{:,.2f}'.format(p.amount) }}</strong></div>{% else %}<div style="color:#748096">No payments recorded.</div>{% endfor %}
+</div>
+<div class="section total"><span>Remaining Balance</span><span>₹{{ '{:,.2f}'.format(balance) }}</span></div>
+</div></div></body></html>
