@@ -81,12 +81,28 @@ def db():
     conn = get_connection(); conn.row_factory = sqlite3.Row; return conn
 
 def _add_column(conn, table, column, definition):
+    """Add a legacy column without rolling back earlier schema creation.
+
+    Render uses an existing PostgreSQL database. PostgreSQL DDL is transactional,
+    so rolling back when a column already exists would also roll back newly
+    created tables (such as the payments table). Use IF NOT EXISTS on PostgreSQL
+    and only ignore the duplicate-column error on SQLite.
+    """
     try:
-        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
-    except Exception as exc:
-        # Column already exists is safe to ignore; rollback only the failed DDL transaction on PostgreSQL.
-        try: conn.rollback()
-        except Exception: pass
+        if DATABASE_URL:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {definition}")
+        else:
+            try:
+                conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+            except Exception:
+                # SQLite has no ADD COLUMN IF NOT EXISTS. Check whether it exists.
+                conn.rollback()
+                cols = conn.execute(f"PRAGMA table_info({table})").fetchall()
+                if not any(str(c[1]) == column for c in cols):
+                    raise
+    except Exception:
+        # Do not hide a real migration error. The caller should see it.
+        raise
 
 def init_db():
     conn = db()
@@ -157,6 +173,31 @@ def init_db():
     # Safe migration for the database already running on Render/local machines.
     _add_column(conn, "work_entries", "rate_per_hour", "DOUBLE PRECISION DEFAULT 0" if DATABASE_URL else "REAL DEFAULT 0")
     _add_column(conn, "work_entries", "customer_id", "INTEGER")
+
+    # Explicit migration for existing deployments. This is intentionally
+    # idempotent: it creates only the new payments table and never removes or
+    # changes existing customer/work data.
+    if DATABASE_URL:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS payments (
+                id SERIAL PRIMARY KEY,
+                customer_id INTEGER NOT NULL REFERENCES customers(id),
+                payment_date TEXT NOT NULL,
+                amount DOUBLE PRECISION NOT NULL,
+                note TEXT DEFAULT ''
+            )
+        """)
+    else:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS payments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                customer_id INTEGER NOT NULL,
+                payment_date TEXT NOT NULL,
+                amount REAL NOT NULL,
+                note TEXT DEFAULT '',
+                FOREIGN KEY(customer_id) REFERENCES customers(id)
+            )
+        """)
 
     if conn.execute("SELECT COUNT(*) FROM drivers").fetchone()[0] == 0:
         conn.executemany("INSERT INTO drivers(name,phone,status) VALUES(?,?,?)", [
