@@ -45,4 +45,6 @@
     </div>
   </div>
 </div>
+
+<div class="card p-3 p-lg-4 mt-4"><div class="d-flex justify-content-between align-items-center mb-3"><div><h5 class="mb-1">Extra Work Reasons</h5><div class="muted small">Extra amounts are included in the total bill. Only the admin-entered reason is shown here.</div></div></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Operator</th><th>Reason</th></tr></thead><tbody>{% for x in extras %}<tr><td>{{ x.work_date }}</td><td>{{ x.driver_name }}</td><td class="fw-semibold">{{ x.reason }}</td></tr>{% else %}<tr><td colspan="3" class="text-center py-4 muted">No extra work entries for this customer.</td></tr>{% endfor %}</tbody></table></div></div>
 {% endblock %}

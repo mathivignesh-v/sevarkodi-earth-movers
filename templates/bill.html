@@ -11,6 +11,7 @@ body{font-family:Inter,Arial,sans-serif;background:#f3f6fa;color:#172033;margin:
 <div class="item"><div class="label">Working Hours</div><div class="value">{{ entry.hours|hours_fmt }} hours</div></div>
 <div class="item"><div class="label">Rate</div><div class="value">₹{{ '{:,.2f}'.format(entry.rate_per_hour) }} / hour</div></div>
 </div><div class="total"><span>Current Work Amount</span><span class="amount">₹{{ '{:,.2f}'.format(entry.amount) }}</span></div>
+{% if bill_extras %}<div style="margin-top:18px;border:1px solid #e6ebf2;border-radius:15px;padding:16px"><h3 style="margin:0 0 10px;font-size:16px">Additional Work</h3>{% for x in bill_extras %}<div style="padding:9px 0;border-bottom:1px solid #edf1f6;font-size:13px"><strong>{{ x.work_date }}</strong> · {{ x.reason }}</div>{% endfor %}</div>{% endif %}
 
 <div style="margin-top:22px;border:1px solid #e6ebf2;border-radius:15px;padding:18px">
   <h3 style="margin:0 0 12px;font-size:17px">Customer Account Summary</h3>
@@ -24,6 +25,6 @@ body{font-family:Inter,Arial,sans-serif;background:#f3f6fa;color:#172033;margin:
   {% for p in payments %}<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #edf1f6;font-size:13px"><span>{{ p.payment_date }}{% if p.note %} · {{ p.note }}{% endif %}</span><strong style="color:#16803c">₹{{ '{:,.2f}'.format(p.amount) }}</strong></div>{% endfor %}
   {% endif %}
 </div>
-<p style="color:#748096;font-size:12px;margin-top:22px">Amount is calculated automatically from working hours × applicable hourly rate. Customer payments are tracked separately and reduce the outstanding balance.</p>
+<p style="color:#748096;font-size:12px;margin-top:22px">The final bill total includes applicable additional work. The additional work amount is included in the total; only its reason is shown above. Customer payments are tracked separately and reduce the outstanding balance.</p>
 {% if entry.customer_id %}<p style="margin-top:10px"><a href="{{ url_for('customer_statement',customer_id=entry.customer_id) }}">Open full customer statement →</a></p>{% endif %}
 </div></div></body></html>

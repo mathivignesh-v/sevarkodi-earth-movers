@@ -11,6 +11,9 @@ body{font-family:Inter,Arial,sans-serif;background:#f3f6fa;color:#172033;margin:
 <div class="section"><h3>Billing Records</h3>
 {% for e in entries %}<div class="row"><span>{{ e.work_date }} · {{ e.vehicle_number }} · {{ e.hours|hours_fmt }} hrs</span><strong>₹{{ '{:,.2f}'.format(e.amount) }}</strong></div>{% else %}<div style="color:#748096">No billing records.</div>{% endfor %}
 </div>
+<div class="section"><h3>Extra Work / Adjustments</h3>
+{% for x in extras %}<div class="row"><span>{{ x.work_date }} · {{ x.driver_name }} · {{ x.reason }}</span><span></span></div>{% else %}<div style="color:#748096">No extra work entries.</div>{% endfor %}
+</div>
 <div class="section"><h3>Payments Received</h3>
 {% for p in payments %}<div class="row"><span>{{ p.payment_date }}{% if p.note %} · {{ p.note }}{% endif %}</span><strong class="paid">₹{{ '{:,.2f}'.format(p.amount) }}</strong></div>{% else %}<div style="color:#748096">No payments recorded.</div>{% endfor %}
 </div>

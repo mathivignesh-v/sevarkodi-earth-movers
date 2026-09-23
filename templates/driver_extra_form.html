@@ -1,0 +1,14 @@
+{% extends 'base.html' %}{% block content %}
+<div class="section-head mb-4"><div><h2 class="page-title mb-1">{{ 'Edit Extra Work' if extra else 'Add Extra Work' }}</h2><div class="muted">Enter the amount for calculation and the reason that should be shown in records and bills.</div></div></div>
+<div class="card p-3 p-lg-4" style="max-width:850px">
+<form method="post">
+<div class="row g-3">
+<div class="col-md-6"><label>Operator / Driver</label><select class="form-select" name="driver_id" required><option value="">Select driver</option>{% for d in drivers %}<option value="{{ d.id }}" {% if extra and extra.driver_id|string==d.id|string %}selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+<div class="col-md-6"><label>Customer <span class="muted fw-normal">(optional)</span></label><select class="form-select" name="customer_id"><option value="">Not linked to a customer</option>{% for c in customers %}<option value="{{ c.id }}" {% if extra and extra.customer_id|string==c.id|string %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+<div class="col-md-4"><label>Date</label><input class="form-control" type="date" name="work_date" value="{{ extra.work_date if extra else today }}" required></div>
+<div class="col-md-4"><label>Extra Amount</label><input class="form-control" type="number" name="amount" min="0.01" step="0.01" value="{{ extra.amount if extra else '' }}" placeholder="2000" required><div class="small muted mt-1">Used for totals; not displayed as a separate extra line.</div></div>
+<div class="col-12"><label>Reason / Description</label><textarea class="form-control" name="reason" rows="3" placeholder="Example: Extra 2 loads completed" required>{{ extra.reason if extra else '' }}</textarea><div class="small muted mt-1">This reason is what will be displayed in bills and customer records.</div></div>
+</div>
+<div class="mt-4 d-flex gap-2"><button class="btn btn-brand"><i class="bi bi-check-lg me-1"></i>{{ 'Update Extra Work' if extra else 'Add Extra Work' }}</button><a class="btn btn-outline-secondary" href="{{ url_for('driver_detail', driver_id=extra.driver_id) if extra else url_for('reports') }}">Cancel</a></div>
+</form></div>
+{% endblock %}

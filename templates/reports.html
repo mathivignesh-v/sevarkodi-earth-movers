@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% block content %}
 <div class="section-head mb-4">
   <div><h2 class="page-title mb-1">Reports & Payments</h2><div class="muted">Review work, record customer payments, and manage payment history.</div></div>
-  <a class="btn btn-brand" href="{{ url_for('add_work') }}"><i class="bi bi-plus-lg me-1"></i>Add Work</a>
+  <div class="d-flex gap-2"><a class="btn btn-outline-primary" href="{{ url_for('add_driver_extra') }}"><i class="bi bi-plus-circle me-1"></i>Add Extra Work</a><a class="btn btn-brand" href="{{ url_for('add_work') }}"><i class="bi bi-plus-lg me-1"></i>Add Work</a></div>
 </div>
 
 <div class="card p-3 mb-4">
@@ -81,4 +81,6 @@
   </tr>{% else %}<tr><td colspan="5" class="text-center py-5 muted">No payments recorded yet.</td></tr>{% endfor %}
   </tbody></table></div>
 </div>
+
+<div class="card p-3 p-lg-4 mt-4"><div class="d-flex justify-content-between align-items-center mb-3"><div><h5 class="mb-1">Extra Work History</h5><div class="muted small">The amount is included in totals, but only the admin-entered reason is displayed.</div></div></div><div class="table-responsive"><table class="table align-middle"><thead><tr><th>Date</th><th>Operator</th><th>Customer</th><th>Reason</th><th>Action</th></tr></thead><tbody>{% for x in extras %}<tr><td>{{ x.work_date }}</td><td>{{ x.driver_name }}</td><td>{{ x.customer_name or '—' }}</td><td class="fw-semibold">{{ x.reason }}</td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('edit_driver_extra',extra_id=x.id) }}">Edit</a> <form class="d-inline" method="post" action="{{ url_for('delete_driver_extra',extra_id=x.id) }}"><button class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this extra work entry?')">Delete</button></form></td></tr>{% else %}<tr><td colspan="5" class="text-center py-5 muted">No extra work entries found.</td></tr>{% endfor %}</tbody></table></div></div>
 {% endblock %}
