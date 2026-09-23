@@ -136,6 +136,11 @@ def init_db():
             payment_date TEXT NOT NULL, amount DOUBLE PRECISION NOT NULL,
             note TEXT DEFAULT ''
         );
+        CREATE TABLE IF NOT EXISTS driver_extras (
+            id SERIAL PRIMARY KEY, driver_id INTEGER NOT NULL REFERENCES drivers(id),
+            customer_id INTEGER REFERENCES customers(id), work_date TEXT NOT NULL,
+            amount DOUBLE PRECISION NOT NULL, reason TEXT NOT NULL
+        );
         """)
     else:
         conn.executescript("""
@@ -168,6 +173,11 @@ def init_db():
             payment_date TEXT NOT NULL, amount REAL NOT NULL, note TEXT DEFAULT '',
             FOREIGN KEY(customer_id) REFERENCES customers(id)
         );
+        CREATE TABLE IF NOT EXISTS driver_extras (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, driver_id INTEGER NOT NULL,
+            customer_id INTEGER, work_date TEXT NOT NULL, amount REAL NOT NULL, reason TEXT NOT NULL,
+            FOREIGN KEY(driver_id) REFERENCES drivers(id), FOREIGN KEY(customer_id) REFERENCES customers(id)
+        );
         """)
 
     # Safe migration for the database already running on Render/local machines.
@@ -198,6 +208,20 @@ def init_db():
                 FOREIGN KEY(customer_id) REFERENCES customers(id)
             )
         """)
+
+    # Idempotent migration for the driver extra-work/bonus ledger.
+    if DATABASE_URL:
+        conn.execute("""CREATE TABLE IF NOT EXISTS driver_extras (
+            id SERIAL PRIMARY KEY, driver_id INTEGER NOT NULL REFERENCES drivers(id),
+            customer_id INTEGER REFERENCES customers(id), work_date TEXT NOT NULL,
+            amount DOUBLE PRECISION NOT NULL, reason TEXT NOT NULL
+        )""")
+    else:
+        conn.execute("""CREATE TABLE IF NOT EXISTS driver_extras (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, driver_id INTEGER NOT NULL, customer_id INTEGER,
+            work_date TEXT NOT NULL, amount REAL NOT NULL, reason TEXT NOT NULL,
+            FOREIGN KEY(driver_id) REFERENCES drivers(id), FOREIGN KEY(customer_id) REFERENCES customers(id)
+        )""")
 
     if conn.execute("SELECT COUNT(*) FROM drivers").fetchone()[0] == 0:
         conn.executemany("INSERT INTO drivers(name,phone,status) VALUES(?,?,?)", [
@@ -244,11 +268,15 @@ def customer_financials(customer_id):
         "SELECT COALESCE(SUM(amount),0) total FROM work_entries WHERE customer_id=?",
         (customer_id,)
     )
+    extra_row = query_one(
+        "SELECT COALESCE(SUM(amount),0) total FROM driver_extras WHERE customer_id=?",
+        (customer_id,)
+    )
     paid_row = query_one(
         "SELECT COALESCE(SUM(amount),0) total FROM payments WHERE customer_id=?",
         (customer_id,)
     )
-    total = float(total_row["total"] or 0)
+    total = float(total_row["total"] or 0) + float(extra_row["total"] or 0)
     paid = float(paid_row["total"] or 0)
     return {
         "total": total,
@@ -350,12 +378,14 @@ def customer_detail(customer_id):
         "SELECT * FROM payments WHERE customer_id=? ORDER BY payment_date DESC, id DESC",
         (customer_id,)
     )
+    extras = query_all("""SELECT x.*, d.name driver_name FROM driver_extras x JOIN drivers d ON d.id=x.driver_id WHERE x.customer_id=? ORDER BY x.work_date DESC, x.id DESC""", (customer_id,))
     financials = customer_financials(customer_id)
     today = datetime.now().strftime("%Y-%m-%d")
     return render_template(
         "customer_detail.html",
         customer=customer,
         entries=entries,
+        extras=extras,
         payments=payments,
         today=today,
         **financials
@@ -379,11 +409,13 @@ def customer_statement(customer_id):
         "SELECT * FROM payments WHERE customer_id=? ORDER BY payment_date ASC, id ASC",
         (customer_id,)
     )
+    extras = query_all("""SELECT x.*, d.name driver_name FROM driver_extras x JOIN drivers d ON d.id=x.driver_id WHERE x.customer_id=? ORDER BY x.work_date ASC, x.id ASC""", (customer_id,))
     financials = customer_financials(customer_id)
     return render_template(
         "customer_statement.html",
         customer=customer,
         entries=entries,
+        extras=extras,
         payments=payments,
         **financials
     )
@@ -470,8 +502,12 @@ def delete_payment(payment_id):
 @app.route("/drivers")
 @login_required
 def drivers():
-    rows=query_all("""SELECT d.*,COALESCE(SUM(w.hours),0) total_hours,COALESCE(SUM(w.amount),0) total_amount
-        FROM drivers d LEFT JOIN work_entries w ON d.id=w.driver_id GROUP BY d.id ORDER BY d.id""")
+    rows=query_all("""SELECT d.*,
+        COALESCE((SELECT SUM(w.hours) FROM work_entries w WHERE w.driver_id=d.id),0) total_hours,
+        COALESCE((SELECT SUM(w.amount) FROM work_entries w WHERE w.driver_id=d.id),0) +
+        COALESCE((SELECT SUM(x.amount) FROM driver_extras x WHERE x.driver_id=d.id),0) total_amount,
+        COALESCE((SELECT SUM(x.amount) FROM driver_extras x WHERE x.driver_id=d.id),0) extra_amount
+        FROM drivers d ORDER BY d.id""")
     return render_template("drivers.html", drivers=rows)
 
 @app.route("/vehicles")
@@ -502,7 +538,14 @@ def driver_detail(driver_id):
     entries=query_all("""SELECT w.*,v.number vehicle_number,v.type vehicle_type,COALESCE(c.name,'—') customer_name
         FROM work_entries w JOIN vehicles v ON v.id=w.vehicle_id LEFT JOIN customers c ON c.id=w.customer_id
         WHERE w.driver_id=? ORDER BY w.work_date DESC,w.start_time DESC""",(driver_id,))
-    return render_template("driver_detail.html",driver=driver,entries=entries,total_hours=sum(float(e["hours"]) for e in entries),total_amount=sum(float(e["amount"]) for e in entries))
+    extras=query_all("""SELECT x.*,c.name customer_name FROM driver_extras x
+        LEFT JOIN customers c ON c.id=x.customer_id WHERE x.driver_id=?
+        ORDER BY x.work_date DESC,x.id DESC""",(driver_id,))
+    work_total=sum(float(e["amount"]) for e in entries)
+    extra_total=sum(float(x["amount"]) for x in extras)
+    return render_template("driver_detail.html",driver=driver,entries=entries,extras=extras,
+                           total_hours=sum(float(e["hours"]) for e in entries),
+                           work_total=work_total,extra_total=extra_total,total_amount=work_total+extra_total)
 
 @app.route("/reports")
 @login_required
@@ -531,13 +574,60 @@ def reports():
     payments = query_all("""SELECT p.*, c.name customer_name
         FROM payments p JOIN customers c ON c.id=p.customer_id
         ORDER BY p.payment_date DESC, p.id DESC""")
+    extras = query_all("""SELECT x.*,d.name driver_name,c.name customer_name
+        FROM driver_extras x JOIN drivers d ON d.id=x.driver_id
+        LEFT JOIN customers c ON c.id=x.customer_id
+        ORDER BY x.work_date DESC,x.id DESC""")
     payment_customers = customers
     return render_template(
         "reports.html",
-        drivers=drivers, customers=customers, entries=entries, payments=payments,
+        drivers=drivers, customers=customers, entries=entries, payments=payments, extras=extras,
         payment_customers=payment_customers,
-        selected=selected_driver, selected_customer=selected_customer
+        selected=selected_driver, selected_customer=selected_customer,
+        today=datetime.now().strftime("%Y-%m-%d")
     )
+
+@app.route("/add-driver-extra", methods=["GET","POST"])
+@login_required
+def add_driver_extra():
+    drivers=query_all("SELECT * FROM drivers ORDER BY name")
+    customers=query_all("SELECT * FROM customers WHERE status='Active' ORDER BY name")
+    if request.method=="POST":
+        driver_id=request.form["driver_id"]
+        customer_id=request.form.get("customer_id") or None
+        work_date=request.form["work_date"]
+        amount=float(request.form.get("amount") or 0)
+        reason=request.form.get("reason","").strip()
+        if amount <= 0 or not reason:
+            flash("Enter a valid extra amount and reason.")
+            return render_template("driver_extra_form.html",drivers=drivers,customers=customers,today=datetime.now().strftime("%Y-%m-%d"),extra=None)
+        conn=db(); conn.execute("INSERT INTO driver_extras(driver_id,customer_id,work_date,amount,reason) VALUES(?,?,?,?,?)",(driver_id,customer_id,work_date,amount,reason)); conn.commit(); conn.close()
+        flash("Extra work entry added. The amount is included in totals; only the reason is shown on bills.")
+        return redirect(url_for("driver_detail",driver_id=driver_id))
+    return render_template("driver_extra_form.html",drivers=drivers,customers=customers,today=datetime.now().strftime("%Y-%m-%d"),extra=None)
+
+@app.route("/edit-driver-extra/<int:extra_id>", methods=["GET","POST"])
+@login_required
+def edit_driver_extra(extra_id):
+    extra=query_one("SELECT * FROM driver_extras WHERE id=?",(extra_id,))
+    if not extra: return redirect(url_for("reports"))
+    drivers=query_all("SELECT * FROM drivers ORDER BY name"); customers=query_all("SELECT * FROM customers WHERE status='Active' ORDER BY name")
+    if request.method=="POST":
+        driver_id=request.form["driver_id"]; customer_id=request.form.get("customer_id") or None; work_date=request.form["work_date"]; amount=float(request.form.get("amount") or 0); reason=request.form.get("reason","").strip()
+        if amount <= 0 or not reason:
+            flash("Enter a valid extra amount and reason.")
+            return render_template("driver_extra_form.html",drivers=drivers,customers=customers,today=datetime.now().strftime("%Y-%m-%d"),extra=extra)
+        conn=db(); conn.execute("UPDATE driver_extras SET driver_id=?,customer_id=?,work_date=?,amount=?,reason=? WHERE id=?",(driver_id,customer_id,work_date,amount,reason,extra_id)); conn.commit(); conn.close()
+        flash("Extra work entry updated."); return redirect(url_for("driver_detail",driver_id=driver_id))
+    return render_template("driver_extra_form.html",drivers=drivers,customers=customers,today=datetime.now().strftime("%Y-%m-%d"),extra=extra)
+
+@app.post("/delete-driver-extra/<int:extra_id>")
+@login_required
+def delete_driver_extra(extra_id):
+    extra=query_one("SELECT driver_id FROM driver_extras WHERE id=?",(extra_id,))
+    if extra:
+        conn=db(); conn.execute("DELETE FROM driver_extras WHERE id=?",(extra_id,)); conn.commit(); conn.close(); flash("Extra work entry deleted."); return redirect(url_for("driver_detail",driver_id=extra["driver_id"]))
+    return redirect(url_for("reports"))
 
 @app.route("/add-driver", methods=["GET","POST"])
 @login_required
@@ -613,12 +703,17 @@ def bill(entry_id):
         WHERE w.id=?""",(entry_id,))
     if not entry: return "Bill not found",404
 
-    financials = customer_financials(entry["customer_id"]) if entry["customer_id"] else {"total": float(entry["amount"]), "paid": 0, "balance": float(entry["amount"])}
+    bill_extras = query_all("""SELECT x.*,d.name driver_name FROM driver_extras x
+        JOIN drivers d ON d.id=x.driver_id
+        WHERE x.driver_id=? AND x.work_date=? AND (x.customer_id=? OR x.customer_id IS NULL)
+        ORDER BY x.id ASC""", (entry["driver_id"], entry["work_date"], entry["customer_id"])) if entry["customer_id"] else query_all("""SELECT x.*,d.name driver_name FROM driver_extras x JOIN drivers d ON d.id=x.driver_id WHERE x.driver_id=? AND x.work_date=? AND x.customer_id IS NULL ORDER BY x.id ASC""", (entry["driver_id"], entry["work_date"]))
+    bill_total = float(entry["amount"]) + sum(float(x["amount"]) for x in bill_extras)
+    financials = customer_financials(entry["customer_id"]) if entry["customer_id"] else {"total": bill_total, "paid": 0, "balance": bill_total}
     payments = query_all(
         "SELECT * FROM payments WHERE customer_id=? ORDER BY payment_date ASC, id ASC",
         (entry["customer_id"],)
     ) if entry["customer_id"] else []
-    return render_template("bill.html", entry=entry, payments=payments, **financials)
+    return render_template("bill.html", entry=entry, payments=payments, bill_extras=bill_extras, bill_total=bill_total, **financials)
 
 @app.post("/delete-driver/<int:driver_id>")
 @login_required
